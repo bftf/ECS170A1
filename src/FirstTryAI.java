@@ -21,10 +21,18 @@ class PointCost implements Comparable<PointCost>
         mCost = pCost;
     }
 
-    // for priority queue
-    public int compareTo(PointCost pOther)
+    @Override
+    public int compareTo(PointCost pO1)
     {
-        return (int)(pOther.mCost - this.mCost);
+        if (pO1.mCost - this.mCost > 0)
+        {
+            return -1;
+        }
+        if (pO1.mCost - this.mCost < 0 )
+        {
+            return 1;
+        }
+        return 0;
     }
 }
 
@@ -52,20 +60,23 @@ public class FirstTryAI implements AIModule
             lCurrent = lUnsettled.poll();
             lCurrentPoint = lCurrent.mPoint;
 
-            if (lCurrentPoint == pMap.getEndPoint())
+            if (lCurrentPoint.x == pMap.getEndPoint().x && lCurrentPoint.y == pMap.getEndPoint().y)
             {
                 break;
             }
+            // just make sure
+            assert(lCurrentPoint.x != pMap.getEndPoint().x || lCurrentPoint.y != pMap.getEndPoint().y);
 
             // get neighbors of the most promising node
             Point[] lLocalNeighbors = pMap.getNeighbors(lCurrentPoint);
 
             for (int i = 0; i < lLocalNeighbors.length; i++)
             {
-                Double lCost = pMap.getCost(lCurrentPoint, lLocalNeighbors[i]) + lCurrent.mCost + 1;
-                if (lDistance.get(lLocalNeighbors[i]) == null || lCost < lDistance.get(lLocalNeighbors[i]))
-                {                lDistance.put(lLocalNeighbors[i], lCost);
+                Double lCost = pMap.getCost(lCurrentPoint, lLocalNeighbors[i]) + lCurrent.mCost;
 
+                if (lDistance.get(lLocalNeighbors[i]) == null || lCost < lDistance.get(lLocalNeighbors[i]))
+                {
+                    lDistance.put(lLocalNeighbors[i], lCost);
                     PointCost lToBeExplored = new PointCost(lLocalNeighbors[i], lCost);
                     lPrevious.put(lLocalNeighbors[i], lCurrentPoint);
                     lUnsettled.add(lToBeExplored);
@@ -73,10 +84,13 @@ public class FirstTryAI implements AIModule
             }
         }
 
+        // add the goal node
+        lPath.add(lCurrentPoint);
+        // go back up the path and return
         Point lPrev = lPrevious.get(lCurrentPoint);
         while (lPrev != null)
         {
-            lPath.add(lPrev);
+            lPath.add(0, lPrev);
             lPrev = lPrevious.get(lPrev);
         }
 
