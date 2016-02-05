@@ -1,8 +1,5 @@
 import java.awt.Point;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * This is a sample AI that moves as far horizontally as necessary to reach the target,
@@ -12,29 +9,22 @@ import java.util.Map;
  * @author Francois Demoullin
  */
 
-class PointCost
+class PointCost implements Comparable<PointCost>
 {
     public Point mPoint;
     public double mCost;
-    public Point mPrevPoint;
 
+    // constructor
     public PointCost(final Point pPoint, final double pCost)
     {
         mPoint = pPoint;
         mCost = pCost;
-        mPrevPoint = null;
     }
 
-    public PointCost(final Point pPoint, final double pCost, final Point pPredecessor)
+    // for priority queue
+    public int compareTo(PointCost pOther)
     {
-        mPoint = pPoint;
-        mCost = pCost;
-        mPrevPoint = pPredecessor;
-    }
-
-    public void addCost(double pCost)
-    {
-        mCost += pCost;
+        return (int)(pOther.mCost - this.mCost);
     }
 }
 
@@ -46,95 +36,50 @@ public class FirstTryAI implements AIModule
         // Holds the final path
         ArrayList<Point> lPath = new ArrayList<Point>();
 
-        ArrayList<PointCost> lUnsettled = new ArrayList<PointCost>();
+        PriorityQueue<PointCost> lUnsettled = new PriorityQueue<>();
+        Map<Point, Double> lDistance = new HashMap<>();
+        Map<Point, Point> lPrevious = new HashMap<>();
 
-        // Visited map
-        Map<Point, Double> lVisited = new HashMap<Point, Double>();
+        lDistance.put(pMap.getStartPoint(), 0D);
+        lUnsettled.add(new PointCost(pMap.getStartPoint(), 0D));
 
-        // initialize all bools to false, we havent visited any nodes yet
-        for (int i = 0; i < pMap.getWidth(); i++)
-        {
-            for (int j = 0; j < pMap.getHeight(); j++)
-            {
-                lVisited[i][j] = false;
-            }
-        }
+        PointCost lCurrent = null;
+        Point lCurrentPoint = null;
 
-        // Keep track of where we are and add the start point.
-        final Point lRoot = pMap.getStartPoint();
-
-        // add root to path and say we have visited root
-        // lVisited[lRoot.x][lRoot.y] = true;
-        lUnsettled.add(new PointCost(lRoot, 0.0));
-
-        // make sure start point is not the end point. That would be pretty silly though
-        if (lRoot.x == pMap.getEndPoint().x && lRoot.y == pMap.getEndPoint().y)
-        {
-            // the start point happened to be at the end point.
-            return lPath;
-        }
-        
         // here we go
         while(lUnsettled.size() != 0)
         {
-            // sort unsettled list
+            lCurrent = lUnsettled.poll();
+            lCurrentPoint = lCurrent.mPoint;
 
-            boolean lSwapped  = true;
-            int j = 0;
-            PointCost lTemp;
-            while (lSwapped)
+            if (lCurrentPoint == pMap.getEndPoint())
             {
-                lSwapped = false;
-                j++;
-                for (int i = 0; i < lUnsettled.size() - j; i++)
-                {
-                    if (lUnsettled.get(i).mCost > lUnsettled.get(i + 1).mCost)
-                    {
-                        lTemp = lUnsettled.get(i);
-                        lUnsettled.set(i, lUnsettled.get(i + 1));
-                        lUnsettled.set(i + 1, lTemp);
-                        lSwapped = true;
-                    }
-                }
-            }
-
-            // make sure we really sorted the list correctly
-            for (int i = 0; i < lUnsettled.size(); i++)
-            {
-                if (i != lUnsettled.size() - 1)
-                {
-                    assert (lUnsettled.get(i).mCost <= lUnsettled.get(i + 1).mCost);
-                }
-            }
-
-            if (lUnsettled.get(0).mPoint.x == pMap.getEndPoint().x && lUnsettled.get(0).mPoint.y == pMap.getEndPoint().y)
-            {
-                return lUnsettled.get(0).mPrevPoint;
+                break;
             }
 
             // get neighbors of the most promising node
-            Point[] lLocalNeighbors = pMap.getNeighbors(lUnsettled.get(0).mPoint);
+            Point[] lLocalNeighbors = pMap.getNeighbors(lCurrentPoint);
 
             for (int i = 0; i < lLocalNeighbors.length; i++)
             {
-                // make sure the neighbor is valid and we havent visited it yet
-                if (!lVisited[lLocalNeighbors[i].x][lLocalNeighbors[i].y] && pMap.validTile(lLocalNeighbors[i]))
-                {
-                    // this node is valid and has not yet been visited. We are adding it to the unsettled list
-                    double lOldCost = lUnsettled.get(0).mCost;
-                    double lNewCost = pMap.getCost(lUnsettled.get(0).mPoint, lLocalNeighbors[i]);
+                Double lCost = pMap.getCost(lCurrentPoint, lLocalNeighbors[i]) + lCurrent.mCost + 1;
+                if (lDistance.get(lLocalNeighbors[i]) == null || lCost < lDistance.get(lLocalNeighbors[i]))
+                {                lDistance.put(lLocalNeighbors[i], lCost);
 
-                    lUnsettled.add(new PointCost(lLocalNeighbors[i], lOldCost + lNewCost, lUnsettled.get(0).mPrevPoints));
+                    PointCost lToBeExplored = new PointCost(lLocalNeighbors[i], lCost);
+                    lPrevious.put(lLocalNeighbors[i], lCurrentPoint);
+                    lUnsettled.add(lToBeExplored);
                 }
             }
-
-            // add the node we just expanded to visited
-            lVisited[lUnsettled.get(0).mPoint.x][lUnsettled.get(0).mPoint.y] = true;
-            // remove the node we just expanded from the unsettled list
-            lUnsettled.remove(0);
-            System.out.println(pMap.getNumVisited());
         }
 
-        return null;
+        Point lPrev = lPrevious.get(lCurrentPoint);
+        while (lPrev != null)
+        {
+            lPath.add(lPrev);
+            lPrev = lPrevious.get(lPrev);
+        }
+
+        return lPath;
     }
 }
