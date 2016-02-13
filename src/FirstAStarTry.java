@@ -38,11 +38,15 @@ public class FirstAStarTry implements AIModule
         }
     }
 
-    private Double computeHeurisitc(final TerrainMap pMap, final Point pCurrentPoint)
+    private Double computeHeurisitc(final TerrainMap pMap, final Point pCurrentPoint, final Double pMinCost)
     {
-        Double lH = Math.sqrt(Math.pow(pCurrentPoint.x - pMap.getEndPoint().x, 2)) + Math.sqrt(Math.pow(pCurrentPoint.y - pMap.getEndPoint().y, 2));
-        return lH;
-        //return 20D;
+        double lCurrentHeight = pMap.getTile(pCurrentPoint);
+        double lGoalHeight = pMap.getTile(pMap.getEndPoint());
+        double lHeightDifference = lGoalHeight - lCurrentHeight;
+
+        Double lSmallestDistance = Math.sqrt(Math.pow(pCurrentPoint.x - pMap.getEndPoint().x, 2)) + Math.sqrt(Math.pow(pCurrentPoint.y - pMap.getEndPoint().y, 2));
+
+        return lSmallestDistance * Math.exp(lHeightDifference);
     }
 
     // Creates the path to the goal using a heurisitc.
@@ -60,13 +64,18 @@ public class FirstAStarTry implements AIModule
         // the root is not hashed (root hashes to null)
         Map<Point, Point> lPrevious = new HashMap<>();
 
+        Double lAverageCost = 0D;
+        int lCounter = 0;
+
         // add the root to both maps
         lDistance.put(pMap.getStartPoint(), 0D);
-        lUnsettled.add(new PointCost(pMap.getStartPoint(), computeHeurisitc(pMap, pMap.getStartPoint())));
+        lUnsettled.add(new PointCost(pMap.getStartPoint(), computeHeurisitc(pMap, pMap.getStartPoint(), lAverageCost)));
 
         // helpers for the while loop
         PointCost lCurrent = null;
         Point lCurrentPoint = null;
+
+
 
         while(lUnsettled.size() != 0)
         {
@@ -85,8 +94,12 @@ public class FirstAStarTry implements AIModule
 
             for (int i = 0; i < lLocalNeighbors.length; i++)
             {
+                lCounter++;
+                Double lRawCost = pMap.getCost(lCurrentPoint, lLocalNeighbors[i]);
+                lAverageCost = (lAverageCost + lRawCost);
+
                 // heuristic
-                Double lH = computeHeurisitc(pMap, lLocalNeighbors[i]);
+                Double lH = computeHeurisitc(pMap, lLocalNeighbors[i], lAverageCost);
                 // compute new cost
                 Double lCost = pMap.getCost(lCurrentPoint, lLocalNeighbors[i]) + lCurrent.mCost +  lH;
 
