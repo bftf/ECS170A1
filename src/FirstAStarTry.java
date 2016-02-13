@@ -46,7 +46,7 @@ public class FirstAStarTry implements AIModule
         double lOneStep = lHeightDifference / lDistance;
 
 
-        return lDistance ; // * 0D; * Math.exp(lOneStep)
+        return lDistance * Math.exp(lOneStep); // * 0D;
     }
 
     // Creates the path to the goal using a heurisitc.
@@ -97,13 +97,13 @@ public class FirstAStarTry implements AIModule
                 // heuristic
                 Double lH = computeHeurisitc(pMap, lLocalNeighbors[i], lAverageCost);
                 // compute new cost
-                Double lCost = lRawCost + lDistance.get(lCurrentPoint) +  lH;
+                Double lEstimatedCost = lRawCost + lDistance.get(lCurrentPoint) +  lH;
 
-                if (lDistance.get(lLocalNeighbors[i]) == null || lCost < lDistance.get(lLocalNeighbors[i]))
+                if (lDistance.get(lLocalNeighbors[i]) == null || lEstimatedCost < lDistance.get(lLocalNeighbors[i]))
                 {
                     // we either found an unvisited node or we found a better path to said node
                     lDistance.put(lLocalNeighbors[i], lRawCost + lDistance.get(lCurrentPoint));
-                    PointCost lToBeExplored = new PointCost(lLocalNeighbors[i], lCost);
+                    PointCost lToBeExplored = new PointCost(lLocalNeighbors[i], lEstimatedCost);
                     lPrevious.put(lLocalNeighbors[i], lCurrentPoint);
 
                     // add it to unsettled, it is worth exploring this node
