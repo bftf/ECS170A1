@@ -32,15 +32,32 @@ public class FirstAStarTry implements AIModule
 
     private double computeHeurisitc(final TerrainMap pMap, final Point pCurrentPoint)
     {
-        double lDistance = pCurrentPoint.distance(pMap.getEndPoint());
+        double lGoalHeight = pMap.getTile(pMap.getEndPoint());
+        double lCurrentHeight = pMap.getTile(pCurrentPoint);
 
-        //lDistance = Math.sqrt(Math.pow(pCurrentPoint.x - pMap.getEndPoint().x, 2) + Math.pow(pCurrentPoint.y - pMap.getEndPoint().y, 2));
+        double lDifferenceX = Math.abs(pMap.getEndPoint().x - pCurrentPoint.x);
+        double lDifferenceY = Math.abs(pMap.getEndPoint().y - pCurrentPoint.y);
+        double lMasterDiff = Math.max(lDifferenceX, lDifferenceY);
+        double lHeightDifference = lCurrentHeight - lGoalHeight;
 
-        double lHeightDifference = pMap.getTile(pMap.getEndPoint()) - pMap.getTile(pCurrentPoint);
-        double lOneStep = lHeightDifference / lDistance;
+        double lDirectDistance = pCurrentPoint.distance(pMap.getEndPoint());
 
+        if( lHeightDifference < 0 )
+        {
+            // we are above the endpoint
+            return (-lHeightDifference * Math.E) + lMasterDiff + lHeightDifference;
+        }
+        else if( lHeightDifference > 0 )
+        {
+            // we are below the endpoint
+            return (lHeightDifference / Math.E) + lMasterDiff - lHeightDifference;
+        }
+        else
+        {
+            // same height
+            return lMasterDiff;
+        }
 
-        return lDistance * Math.exp(lOneStep);
     }
 
     // Creates the path to the goal using a heurisitc.
