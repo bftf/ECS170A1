@@ -26,27 +26,21 @@ public class FirstAStarTry implements AIModule
         @Override
         public int compareTo(PointCost pO1)
         {
-            if (pO1.mCost - this.mCost > 0)
-            {
-                return -1;
-            }
-            if (pO1.mCost - this.mCost < 0 )
-            {
-                return 1;
-            }
-            return 0;
+            return this.mCost > pO1.mCost ? 1 : -1;
         }
     }
 
-    private double computeHeurisitc(final TerrainMap pMap, final Point pCurrentPoint, final Double pMinCost)
+    private double computeHeurisitc(final TerrainMap pMap, final Point pCurrentPoint)
     {
         double lDistance = pCurrentPoint.distance(pMap.getEndPoint());
+
+        //lDistance = Math.sqrt(Math.pow(pCurrentPoint.x - pMap.getEndPoint().x, 2) + Math.pow(pCurrentPoint.y - pMap.getEndPoint().y, 2));
 
         double lHeightDifference = pMap.getTile(pMap.getEndPoint()) - pMap.getTile(pCurrentPoint);
         double lOneStep = lHeightDifference / lDistance;
 
 
-        return lDistance * Math.exp(lOneStep); // * 0D;
+        return lDistance * Math.exp(lOneStep);
     }
 
     // Creates the path to the goal using a heurisitc.
@@ -63,15 +57,13 @@ public class FirstAStarTry implements AIModule
         // the root is not hashed (root hashes to null)
         Map<Point, Point> lPrevious = new HashMap<>();
 
-        Double lAverageCost = 0D;
-        int lCounter = 0;
 
         // add the root to both maps
         lDistance.put(pMap.getStartPoint(), 0D);
         lUnsettled.add(new PointCost(pMap.getStartPoint(), 0D));
 
         // helpers for the while loop
-        PointCost lCurrent = null;
+        PointCost lCurrent;
         Point lCurrentPoint = null;
 
 
@@ -80,9 +72,17 @@ public class FirstAStarTry implements AIModule
             // remove the most promising node from unsettled
             lCurrent = lUnsettled.poll();
             lCurrentPoint = lCurrent.mPoint;
+            double lCurrentTrueDistance = lDistance.get(lCurrentPoint);
 
             if (lCurrentPoint.x == pMap.getEndPoint().x && lCurrentPoint.y == pMap.getEndPoint().y)
             {
+                for (PointCost lPC : lUnsettled)
+                {
+                    if (lPC.mCost < lDistance.get(lCurrentPoint) && lPC.mPoint.equals(lCurrentPoint))
+                    {
+                        continue;
+                    }
+                }
                 // we can break because the first solution we find has to be the best solution
                 break;
             }
@@ -95,22 +95,29 @@ public class FirstAStarTry implements AIModule
                 Double lRawCost = pMap.getCost(lCurrentPoint, lLocalNeighbors[i]);
 
                 // heuristic
-                Double lH = computeHeurisitc(pMap, lLocalNeighbors[i], lAverageCost);
+                Double lH = computeHeurisitc(pMap, lLocalNeighbors[i]);
                 // compute new cost
-                Double lEstimatedCost = lRawCost + lDistance.get(lCurrentPoint) +  lH;
+                Double lEstimatedCost = lRawCost + lCurrentTrueDistance + lH;
 
-                if (lDistance.get(lLocalNeighbors[i]) == null || lEstimatedCost < lDistance.get(lLocalNeighbors[i]))
+                if (lH < 0.0 || lRawCost < 0.0)
+                {
+                    int a = 0;
+                }
+
+                if (lDistance.get(lLocalNeighbors[i]) == null || lRawCost + lCurrentTrueDistance < lDistance.get(lLocalNeighbors[i]))
                 {
                     // we either found an unvisited node or we found a better path to said node
-                    lDistance.put(lLocalNeighbors[i], lRawCost + lDistance.get(lCurrentPoint));
-                    PointCost lToBeExplored = new PointCost(lLocalNeighbors[i], lEstimatedCost);
+                    lDistance.put(lLocalNeighbors[i], lRawCost + lCurrentTrueDistance);
                     lPrevious.put(lLocalNeighbors[i], lCurrentPoint);
 
                     // add it to unsettled, it is worth exploring this node
+                    PointCost lToBeExplored = new PointCost(lLocalNeighbors[i], lEstimatedCost);
                     lUnsettled.add(lToBeExplored);
                 }
             }
         }
+
+        assert(lCurrentPoint.equals(pMap.getEndPoint()));
 
         // add the goal node first
         lPath.add(lCurrentPoint);
